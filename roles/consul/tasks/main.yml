@@ -1,0 +1,114 @@
+---
+# role definition for consul
+- name: install unzip
+  become: yes
+  apt:
+    update_cache: yes
+    name: unzip
+
+- name: check archive stat
+  stat:
+    path: /tmp/consul.zip
+  register: consul_archive_stat
+
+- name: download consul
+  get_url:
+    url: https://releases.hashicorp.com/consul/0.9.0/consul_0.9.0_linux_amd64.zip
+    dest: /tmp/consul.zip
+    checksum: sha256:33e54c7d9a93a8ce90fc87f74c7f787068b7a62092b7c55a945eea9939e8577f
+  register: consul_was_downloaded
+  when: consul_archive_stat.stat.exists == False
+
+- name: create group
+  group:
+    name: consul
+    state: present
+    system: yes
+  register: consul_group_created
+
+- name: create user
+  user:
+    home: /opt/consul
+    name: consul
+    group: consul
+    system: yes
+  when: consul_group_created|changed
+
+- name: create directory
+  file:
+    state: directory
+    path: "{{ item }}"
+    owner: consul
+    group: consul
+    mode: 0755
+  with_items:
+    - "/opt/consul"
+    - "/opt/consul/bin"
+    - "/opt/consul/data"
+    - "/etc/consul.d"
+
+- name: check for consul log directory
+  stat:
+    path: /var/log
+  register: logdir
+
+- name: create log directory if it does not exist
+  file:
+    state: directory
+    path: /var/log
+    owner: consul
+    group: consul
+  when: not logdir.stat.exists
+
+- name: touch the log file
+  file:
+    state: touch
+    path: /var/log/consul
+    owner: consul
+    group: consul
+  changed_when: false
+
+- name: extract consul
+  unarchive:
+    src: /tmp/consul.zip
+    remote_src: yes
+    dest: /opt/consul/bin
+  when: consul_was_downloaded|changed
+
+- name: set ownership
+  file:
+    state: directory
+    path: /opt/consul
+    owner: consul
+    group: consul
+    recurse: yes
+  when: consul_was_downloaded|changed
+
+- name: make executable
+  file:
+    path: /opt/consul/bin/consul
+    mode: a+x
+
+- name: copy consul systemd script
+  template:
+    src: "consul.systemd.j2"
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - reload systemd
+    - restart consul
+
+- name: consul config file
+  template:
+    src: "consul.json.j2"
+    dest: /etc/consul.conf
+
+- name: restart consul
+  systemd:
+    name: consul
+    state: restarted
+    enabled: yes
+    masked: no
+

@@ -1,0 +1,17 @@
+[Unit]
+Description=Consul Agent
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Restart=on-failure
+PermissionsStartOnly=true
+ExecStart=/opt/consul/bin/consul agent -server -config-dir /etc/consul.d -config-file /etc/consul.conf -data-dir /opt/consul/data >> /var/log/consul 2>&1
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGINT
+User=consul
+Group=consul
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,12 @@
+---
+
+- name: deploy consuls
+  hosts: consul_servers
+  remote_user: jocke
+  sudo: yes
+  vars:
+    consul_servers:
+      ['10.132.0.4', '10.132.0.5', '10.132.0.6']
+  roles:
+    - consul
+
