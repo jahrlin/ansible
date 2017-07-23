@@ -1,6 +1,6 @@
 # ansible
 
-my ansible playbooks my website and other stuff
+ansible playbooks for my website and other stuff
 
 ## website
 
