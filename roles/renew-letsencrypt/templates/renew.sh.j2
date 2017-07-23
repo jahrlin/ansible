@@ -1,0 +1,10 @@
+#!/bin/sh
+
+SITE=jahrlin.com
+
+cd /etc/letsencrypt/live/$SITE
+
+cat fullchain.pem privkey.pem > /etc/haproxy/certs/$SITE.pem
+
+systemctl reload haproxy
+

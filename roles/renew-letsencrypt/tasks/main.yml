@@ -1,0 +1,25 @@
+---
+
+- name: create directory
+  file:
+    state: directory
+    path: /opt/letsencrypt
+
+- name: touch log file
+  file:
+    path: /var/log/letsencrypt-renew.log
+    state: touch
+
+- name: copy script
+  template:
+    src: renew.sh.j2
+    dest: /opt/letsencrypt/renew.sh
+    mode: "a+x"
+
+- name: create cron job
+  cron:
+    name: "run letsencrypt renewal"
+    minute: "0"
+    hour: "1"
+    job: "/usr/bin/certbot renew --renew-hook \"sudo /opt/letsencrypt/renew.sh\" >> /var/log/letsencrypt-renew.log"
+
