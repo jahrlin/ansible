@@ -1,0 +1,9 @@
+---
+
+- name: deploy haproxy
+  hosts: haproxy-edge
+  remote_user: jocke
+  sudo: yes
+  roles:
+    - haproxy
+

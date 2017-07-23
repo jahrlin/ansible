@@ -1,0 +1,56 @@
+---
+# role definition for haproxy
+
+- name: check if service exists
+  stat:
+    path: /lib/systemd/system/haproxy.service
+  register: service_exists
+
+- name: install haproxy
+  become: yes
+  apt:
+    update_cache: yes
+    name: haproxy
+  when: not service_exists
+
+- name: haproxy config file
+  template:
+    src: "haproxy.cfg.j2"
+    dest: /etc/haproxy/haproxy.cfg
+  notify:
+    - restart haproxy
+
+- name: create directory
+  file:
+    state: directory
+    path: "{{ item }}"
+  with_items:
+    - "/opt/consul-template"
+    - "/opt/consul-template/bin"
+
+- name: check if consul-template exists
+  stat:
+    path: /opt/consul-template/bin/consul-template
+  register: consultemplate_exists
+
+
+- name: download consul-template
+  get_url:
+    url: https://releases.hashicorp.com/consul-template/0.19.0/consul-template_0.19.0_linux_amd64.tgz
+    checksum: "sha256:a540869c26e45c5375fe7b80dbf6c283a8f7a5be25c6e2ecd2f529187d568964"
+    dest: /tmp/consul-template.tgz
+  register: consultemplate_was_downloaded
+  when: not consultemplate_exists.stat.exists
+
+- name: extract binary
+  unarchive:
+    src: /tmp/consul-template.tgz
+    remote_src: yes
+    dest: /opt/consul-template/bin
+  when: consultemplate_was_downloaded
+
+- name: copy template
+  copy:
+    src: haproxy.cfg.ctmpl
+    dest: /opt/consul-template/haproxy.cfg.ctmpl
+
